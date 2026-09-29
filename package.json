@@ -1,0 +1,17 @@
+{
+  "name": "justcode-cli",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev:server": "bun run --cwd apps/server dev",
+    "start:server": "bun run --cwd apps/server start",
+    "start:cli": "bun run --cwd apps/cli start",
+    "typecheck": "tsc --noEmit -p packages/shared/tsconfig.json && tsc --noEmit -p apps/server/tsconfig.json && tsc --noEmit -p apps/cli/tsconfig.json"
+  },
+  "devDependencies": {
+    "@hono/cli": "^0.2.0-next.9",
+    "@types/bun": "^1.4.2",
+    "@types/react": "^19.3.0",
+    "typescript": "^5"
+  }
+}

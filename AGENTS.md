@@ -1,0 +1,13 @@
+# Repository notes
+
+- This is a Bun workspace (`apps/*`); run commands from the repository root. `apps/server` and `apps/cli` are separate runnable projects.
+- `apps/server/src/index.ts` exports a Hono app directly; Bun serves that default export. `bun run dev:server` uses `bun --hot`, while `bun run start:server` runs without hot reload.
+- `apps/cli/src/index.tsx` renders an interactive terminal UI with OpenTUI React, not browser DOM components. Its TS config uses `jsxImportSource: "@opentui/react"` (also declared in the entrypoint pragma).
+- Keep the interactive CLI's root script on `bun run --cwd apps/cli start`. `--cwd` runs the script directly from the CLI directory so OpenTUI can control terminal output and keyboard input. Bun's `--filter` is a workspace script runner that can manage/format output; reserve it for non-interactive or multi-workspace scripts rather than full-screen TUI apps. This is a development-script choice, not a requirement for distributing the CLI.
+
+## Commands
+
+- Install: `bun install` (the workspace uses `bun.lock`).
+- Run the CLI: `bun run start:cli`; run the server: `bun run dev:server` or `bun run start:server`.
+- Check both workspaces: `bun run typecheck` (server first, then CLI). For a focused check: `bun run tsc --noEmit -p apps/server/tsconfig.json` or `bun run tsc --noEmit -p apps/cli/tsconfig.json`.
+- There are no configured test or lint scripts; typecheck is the available repository-wide check.

@@ -1,0 +1,13 @@
+{
+  "name": "@justcode/server",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun --hot src/index.ts",
+    "start": "bun src/index.ts"
+  },
+  "dependencies": {
+    "@justcode/shared": "workspace:*",
+    "hono": "^4.13.10"
+  }
+}

@@ -1,7 +1,9 @@
-import { SERVER_PORT } from '@justcode/shared'
-import app from './app'
+import { APP_NAME } from '@justcode/shared'
+import { Hono } from 'hono'
 
-export default {
-  port: SERVER_PORT,
-  fetch: app.fetch,
-}
+const app = new Hono()
+
+app.get('/', (c) => c.json({ message: `Welcome to ${APP_NAME}!` }))
+app.get('/health', (c) => c.json({ status: 'ok' }))
+
+export default app

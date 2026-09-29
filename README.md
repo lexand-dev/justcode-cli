@@ -17,15 +17,4 @@ bun run dev:server    # Hono server at http://localhost:3000
 bun run start:cli     # interactive terminal welcome screen
 ```
 
-The server and CLI use the same `PORT` setting (default `3000`). Export it in the shell before starting both:
-
-```sh
-export PORT=4000
-bun run dev:server
-
-# In another terminal:
-export PORT=4000
-bun run start:cli
-```
-
 The server responds at `/` and `/health`. Press `Ctrl+C` to leave the CLI. Run `bun run typecheck` to check both workspaces.

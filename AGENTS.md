@@ -9,6 +9,13 @@
 - In the CLI, keep screen-level layouts in `src/screens/` and UI components in `src/components/`; keep `src/index.tsx` focused on renderer setup and mounting the screen.
 - Keep the interactive CLI's root script on `bun run --cwd apps/cli start`. `--cwd` runs the script directly from the CLI directory so OpenTUI can control terminal output and keyboard input. Bun's `--filter` is a workspace script runner that can manage/format output; reserve it for non-interactive or multi-workspace scripts rather than full-screen TUI apps. This is a development-script choice, not a requirement for distributing the CLI.
 
+## Commits
+
+- For every subsequent commit, consult the `git-commit` skill and choose the message from the actual diff.
+- Use the latest commit's Conventional Commit subject format: `<type>(<scope>): <imperative description>` (for example, `feat(cli): add route navigation and resizable textarea`). Use a relevant type such as `feat`, `fix`, `docs`, or `refactor`; omit the scope when there is no useful one. Keep the subject under 72 characters.
+- For commits that need more explanation, follow the first commit's body style: leave a blank line after the subject, then list the concrete changes as `- ` bullet points. A straightforward commit can have just the subject.
+- Keep each commit focused on one logical change and stage only the intended files.
+
 ## Commands
 
 - Install: `bun install` (the workspace uses `bun.lock`).

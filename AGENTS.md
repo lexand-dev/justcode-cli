@@ -3,6 +3,8 @@
 - This is a Bun workspace (`apps/*`); run commands from the repository root. `apps/server` and `apps/cli` are separate runnable projects.
 - `apps/server/src/index.ts` exports a Hono app directly; Bun serves that default export. `bun run dev:server` uses `bun --hot`, while `bun run start:server` runs without hot reload.
 - `apps/cli/src/index.tsx` renders an interactive terminal UI with OpenTUI React, not browser DOM components. Its TS config uses `jsxImportSource: "@opentui/react"` (also declared in the entrypoint pragma).
+- Name source files in kebab-case (for example, `home-screen.tsx` and `home-textarea.tsx`), even when exported components use PascalCase.
+- In the CLI, keep screen-level layouts in `src/screens/` and UI components in `src/components/`; keep `src/index.tsx` focused on renderer setup and mounting the screen.
 - Keep the interactive CLI's root script on `bun run --cwd apps/cli start`. `--cwd` runs the script directly from the CLI directory so OpenTUI can control terminal output and keyboard input. Bun's `--filter` is a workspace script runner that can manage/format output; reserve it for non-interactive or multi-workspace scripts rather than full-screen TUI apps. This is a development-script choice, not a requirement for distributing the CLI.
 
 ## Commands

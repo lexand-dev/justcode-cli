@@ -9,7 +9,11 @@
     "@justcode/shared": "workspace:*",
     "@opentui/core": "^0.5.12",
     "@opentui/react": "^0.5.12",
+    "hono": "^4.13.10",
     "react": "^19.3.0",
     "react-router": "^8.4.0"
+  },
+  "devDependencies": {
+    "@justcode/server": "workspace:*"
   }
 }

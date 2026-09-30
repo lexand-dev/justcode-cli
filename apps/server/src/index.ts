@@ -1,7 +1,6 @@
-import { SERVER_PORT } from '@justcode/shared'
 import app from './app'
 
 export default {
-  port: SERVER_PORT,
+  port: Number(process.env.PORT ?? 3000),
   fetch: app.fetch,
 }

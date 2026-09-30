@@ -2,6 +2,9 @@ import type { TextareaRenderable } from '@opentui/core'
 import { useTerminalDimensions } from '@opentui/react'
 import { useRef, useState, type RefObject } from 'react'
 import { useNavigate } from 'react-router'
+import { z } from 'zod'
+
+const promptSchema = z.string().refine((prompt) => prompt.trim().length > 0)
 
 function useTextareaHeight(textarea: RefObject<TextareaRenderable | null>) {
   const [lineCount, setLineCount] = useState(1)
@@ -20,12 +23,12 @@ export function HomeTextarea() {
   const { textareaHeight, updateLineCount } = useTextareaHeight(textarea)
   const navigate = useNavigate()
 
-  function goToRoute() {
-    const path = textarea.current?.plainText.split(/\r?\n/, 1)[0]?.trim()
-    if (!path) return
+  function goToChat() {
+    const prompt = promptSchema.safeParse(textarea.current?.plainText)
+    if (!prompt.success) return
 
     textarea.current?.setText('')
-    void navigate(path.startsWith('/') ? path : `/${path}`)
+    void navigate('/chat', { state: { message: prompt.data } })
   }
 
   return (
@@ -34,7 +37,7 @@ export function HomeTextarea() {
         ref={textarea}
         width="100%"
         height={textareaHeight}
-        placeholder="Enter a route: Enter to go, Shift+Enter for a new line"
+        placeholder="Enter a message: Enter to chat, Shift+Enter for a new line"
         keyBindings={[
           { name: 'return', action: 'submit' },
           { name: 'kpenter', action: 'submit' },
@@ -44,7 +47,7 @@ export function HomeTextarea() {
           { name: 'linefeed', shift: true, action: 'newline' },
         ]}
         onContentChange={updateLineCount}
-        onSubmit={goToRoute}
+        onSubmit={goToChat}
         focused
       />
     </box>

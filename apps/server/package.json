@@ -11,7 +11,11 @@
     "start": "bun src/index.ts"
   },
   "dependencies": {
+    "@ai-sdk/deepseek": "^3.0.56",
+    "@hono/zod-validator": "^0.9.1",
     "@justcode/shared": "workspace:*",
-    "hono": "^4.13.10"
+    "ai": "^7.0.122",
+    "hono": "^4.13.10",
+    "zod": "^4.6.5"
   }
 }

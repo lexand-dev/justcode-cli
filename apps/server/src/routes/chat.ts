@@ -1,14 +1,18 @@
-import { deepSeek } from "@ai-sdk/deepseek";
+import { createDeepSeek } from "@ai-sdk/deepseek";
 import { zValidator } from "@hono/zod-validator";
 import {
   convertToModelMessages,
   createUIMessageStreamResponse,
+  isStepCount,
   safeValidateUIMessages,
   streamText,
+  tool,
   toUIMessageStream
 } from "ai";
 import { Hono } from "hono";
 import { z } from "zod";
+
+const deepSeek = createDeepSeek({ baseURL: "https://api.deepseek.com/beta" });
 
 const chatRequestSchema = z.object({
   messages: z.array(z.object({
@@ -32,7 +36,17 @@ export const chatRoutes = new Hono()
 
     const result = streamText({
       model: deepSeek("deepseek-v4-flash"),
-      messages: await convertToModelMessages(validated.data)
+      messages: await convertToModelMessages(validated.data),
+      instructions: "When asked to add two numbers, call addNumbers and include its result in your answer.",
+      tools: {
+        addNumbers: tool({
+          description: "Add two numbers for a quick tool-call test.",
+          inputSchema: z.object({ a: z.number(), b: z.number() }),
+          strict: true,
+          execute: async ({ a, b }) => ({ sum: a + b })
+        })
+      },
+      stopWhen: isStepCount(2)
     });
 
     return createUIMessageStreamResponse({

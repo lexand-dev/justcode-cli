@@ -17,7 +17,8 @@
 
 - For every commit, consult the `git-commit` skill and choose the message from the actual diff.
 - Use Conventional Commit subjects in the format `<type>(<scope>): <imperative description>`. Use a relevant type, omit the scope when there is no useful one, and keep the subject under 72 characters.
-- For nontrivial commits, include a descriptive body with concise bullets summarizing the actual changes, in the style of `- add ...`; choose details from the diff and keep each bullet on its own actual line. Separate subject and body with a blank line, and never encode line breaks as literal `\n` text. When using `git commit -m`, pass the body as a multiline shell string or use repeated `-m` options.
+- Make the subject specific enough to identify the user-visible or technical change; avoid generic descriptions such as "update feature" or "improve things". Name the affected behavior or capability.
+- For every nontrivial commit, include a descriptive body with concise bullets that explain the notable changes in the actual diff (not merely repeat the subject). Choose details from the diff, keep each bullet on its own actual line, and separate the subject and body with a blank line. Never encode line breaks as literal `\\n` text. When using `git commit -m`, pass the body as a multiline shell string or use repeated `-m` options.
 - Keep each commit focused on one logical change and stage only the intended files.
 
 ## Commands

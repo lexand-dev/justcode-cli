@@ -1,6 +1,7 @@
 import { useChat } from '@ai-sdk/react'
 import { useKeyboard } from '@opentui/react'
-import { DefaultChatTransport, type UIMessage } from 'ai'
+import type { ChatUIMessage } from '@justcode/server/chat-tools'
+import { DefaultChatTransport } from 'ai'
 import { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router'
 import { z } from 'zod'
@@ -10,14 +11,14 @@ import { ChatTextarea } from '../components/chat-textarea'
 import { client } from '../lib/client'
 
 const chatStateSchema = z.object({ message: z.string().refine((message) => message.trim().length > 0) })
-const transport = new DefaultChatTransport({ api: client.chat.$url().toString() })
+const transport = new DefaultChatTransport<ChatUIMessage>({ api: client.chat.$url().toString() })
 
 type TranscriptEntry =
-  | { type: 'message'; id: string; snapshot?: UIMessage }
+  | { type: 'message'; id: string; snapshot?: ChatUIMessage }
   | { type: 'error'; id: string; text: string }
 
 function Conversation({ prompt }: { prompt: string | null }) {
-  const { messages, sendMessage, regenerate, status, error } = useChat({ transport })
+  const { messages, sendMessage, regenerate, status, error } = useChat<ChatUIMessage>({ transport })
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([])
   const recordedMessageIds = useRef(new Set<string>())
   const recordedError = useRef<Error | undefined>(undefined)

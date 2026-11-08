@@ -4,7 +4,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./app": "./src/app.ts"
+    "./app": "./src/app.ts",
+    "./chat-tools": "./src/chat-tools.ts"
   },
   "scripts": {
     "dev": "bun --hot src/index.ts",

@@ -6,11 +6,11 @@ import {
   isStepCount,
   safeValidateUIMessages,
   streamText,
-  tool,
   toUIMessageStream
 } from "ai";
 import { Hono } from "hono";
 import { z } from "zod";
+import { chatTools, type ChatUIMessage } from "../chat-tools";
 
 const deepSeek = createDeepSeek({ baseURL: "https://api.deepseek.com/beta" });
 
@@ -29,7 +29,7 @@ export const chatRoutes = new Hono()
     }
 
     const { messages } = c.req.valid("json");
-    const validated = await safeValidateUIMessages({ messages });
+    const validated = await safeValidateUIMessages<ChatUIMessage>({ messages, tools: chatTools });
     if (!validated.success) {
       return c.text("Invalid messages.", 400);
     }
@@ -38,14 +38,7 @@ export const chatRoutes = new Hono()
       model: deepSeek("deepseek-v4-flash"),
       messages: await convertToModelMessages(validated.data),
       instructions: "When asked to add two numbers, call addNumbers and include its result in your answer.",
-      tools: {
-        addNumbers: tool({
-          description: "Add two numbers for a quick tool-call test.",
-          inputSchema: z.object({ a: z.number(), b: z.number() }),
-          strict: true,
-          execute: async ({ a, b }) => ({ sum: a + b })
-        })
-      },
+      tools: chatTools,
       stopWhen: isStepCount(2)
     });
 

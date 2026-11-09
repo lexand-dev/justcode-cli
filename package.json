@@ -1,12 +1,19 @@
 {
   "name": "justcode-cli",
   "private": true,
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "dev:server": "bun run --cwd apps/server dev",
     "start:server": "bun run --cwd apps/server start",
     "start:cli": "bun run --cwd apps/cli start",
-    "typecheck": "tsc --noEmit -p packages/shared/tsconfig.json && tsc --noEmit -p apps/server/tsconfig.json && tsc --noEmit -p apps/cli/tsconfig.json"
+    "typecheck": "tsc --noEmit -p packages/shared/tsconfig.json && tsc --noEmit -p packages/db/tsconfig.json && tsc --noEmit -p apps/server/tsconfig.json && tsc --noEmit -p apps/cli/tsconfig.json",
+    "db:generate": "bun run --cwd packages/db db:generate",
+    "db:push": "bun run --cwd packages/db db:push",
+    "db:reset": "bun run --cwd packages/db db:reset",
+    "db:studio": "bun run --cwd packages/db db:studio"
   },
   "devDependencies": {
     "@hono/cli": "^0.2.0-next.9",

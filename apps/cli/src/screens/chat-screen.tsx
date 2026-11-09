@@ -1,24 +1,84 @@
 import { useChat } from '@ai-sdk/react'
 import { useKeyboard } from '@opentui/react'
 import type { ChatUIMessage } from '@justcode/server/chat-tools'
-import { DefaultChatTransport } from 'ai'
-import { useEffect, useRef, useState } from 'react'
-import { useLocation } from 'react-router'
+import { DefaultChatTransport, safeValidateUIMessages } from 'ai'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useLocation, useParams } from 'react-router'
 import { z } from 'zod'
 import { ChatError, ChatMessage } from '../components/chat-message'
 import { ChatShell } from '../components/chat-shell'
 import { ChatTextarea } from '../components/chat-textarea'
 import { client } from '../lib/client'
 
+const sessionParamsSchema = z.object({ sessionId: z.uuid() })
 const chatStateSchema = z.object({ message: z.string().refine((message) => message.trim().length > 0) })
-const transport = new DefaultChatTransport<ChatUIMessage>({ api: client.chat.$url().toString() })
+const sessionMessagesSchema = z.object({ messages: z.array(z.unknown()) })
 
 type TranscriptEntry =
   | { type: 'message'; id: string; snapshot?: ChatUIMessage }
   | { type: 'error'; id: string; text: string }
 
-function Conversation({ prompt }: { prompt: string | null }) {
-  const { messages, sendMessage, regenerate, status, error } = useChat<ChatUIMessage>({ transport })
+type Hydration =
+  | { status: 'loading' }
+  | { status: 'error'; error: string }
+  | { status: 'ready'; messages: ChatUIMessage[] }
+
+async function fetchSessionMessages(sessionId: string): Promise<ChatUIMessage[]> {
+  const response = await client.sessions[':sessionId'].messages.$get({ param: { sessionId } })
+  if (response.status === 404) throw new Error('Session not found.')
+  if (!response.ok) throw new Error(`Could not load the session (HTTP ${response.status}).`)
+
+  const body = sessionMessagesSchema.safeParse(await response.json())
+  if (!body.success) throw new Error('Unexpected response while loading the session.')
+  // safeValidateUIMessages rejects an empty list; a new session has no messages yet.
+  if (body.data.messages.length === 0) return []
+
+  const validated = await safeValidateUIMessages<ChatUIMessage>({ messages: body.data.messages })
+  if (!validated.success) throw new Error('The session contains invalid messages.')
+  return validated.data
+}
+
+function useSessionMessages(sessionId: string): Hydration {
+  const [hydration, setHydration] = useState<Hydration>({ status: 'loading' })
+
+  useEffect(() => {
+    let active = true
+    setHydration({ status: 'loading' })
+
+    fetchSessionMessages(sessionId).then(
+      (messages) => { if (active) setHydration({ status: 'ready', messages }) },
+      (error: unknown) => {
+        if (active) setHydration({ status: 'error', error: error instanceof Error ? error.message : 'Could not load the session.' })
+      },
+    )
+
+    return () => {
+      active = false
+    }
+  }, [sessionId])
+
+  return hydration
+}
+
+function Conversation({
+  sessionId,
+  initialMessages,
+  prompt,
+}: {
+  sessionId: string
+  initialMessages: ChatUIMessage[]
+  prompt: string | null
+}) {
+  const transport = useMemo(() => new DefaultChatTransport<ChatUIMessage>({
+    api: client.chat[':sessionId'].$url({ param: { sessionId } }).toString(),
+    // The server loads the history from the database; send only the newest message.
+    prepareSendMessagesRequest: ({ messages }) => ({ body: { message: messages.at(-1) } }),
+  }), [sessionId])
+  const { messages, sendMessage, regenerate, status, error } = useChat<ChatUIMessage>({
+    id: sessionId,
+    messages: initialMessages,
+    transport,
+  })
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([])
   const recordedMessageIds = useRef(new Set<string>())
   const recordedError = useRef<Error | undefined>(undefined)
@@ -94,9 +154,38 @@ function Conversation({ prompt }: { prompt: string | null }) {
   )
 }
 
+function SessionChat({ sessionId, prompt }: { sessionId: string; prompt: string | null }) {
+  const hydration = useSessionMessages(sessionId)
+
+  if (hydration.status === 'ready') {
+    return <Conversation sessionId={sessionId} initialMessages={hydration.messages} prompt={prompt} />
+  }
+
+  return (
+    <box padding={1}>
+      <text>{hydration.status === 'loading' ? 'Loading session...' : `Error: ${hydration.error}`}</text>
+    </box>
+  )
+}
+
 export function ChatScreen() {
   const { state, key } = useLocation()
+  const params = sessionParamsSchema.safeParse(useParams())
   const chatState = chatStateSchema.safeParse(state)
 
-  return <Conversation key={key} prompt={chatState.success ? chatState.data.message : null} />
+  if (!params.success) {
+    return (
+      <box padding={1}>
+        <text>Error: Invalid session id.</text>
+      </box>
+    )
+  }
+
+  return (
+    <SessionChat
+      key={key}
+      sessionId={params.data.sessionId}
+      prompt={chatState.success ? chatState.data.message : null}
+    />
+  )
 }

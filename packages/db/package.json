@@ -1,0 +1,25 @@
+{
+  "name": "@justcode/db",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/client.ts"
+  },
+  "scripts": {
+    "postinstall": "bunx --bun prisma generate",
+    "db:generate": "bunx --bun prisma generate",
+    "db:push": "bunx --bun prisma db push && bunx --bun prisma generate",
+    "db:reset": "bunx --bun prisma db push --force-reset && bunx --bun prisma generate",
+    "db:studio": "bunx --bun prisma studio"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "7.10.1",
+    "@prisma/client": "7.10.1",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "dotenv": "^18.0.9",
+    "prisma": "7.10.1"
+  }
+}

@@ -4,5 +4,5 @@ import { HomeScreen } from './screens/home-screen'
 
 export const router = createMemoryRouter([
   { path: '/', element: <HomeScreen /> },
-  { path: '/chat', element: <ChatScreen /> },
+  { path: '/sessions/:sessionId', element: <ChatScreen /> },
 ])

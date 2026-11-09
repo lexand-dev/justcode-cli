@@ -7,15 +7,17 @@ const messageSchema = z.string().refine((message) => message.trim().length > 0)
 
 export function ChatTextarea({
   disabled = false,
+  initialValue,
   onSend,
   placeholder = 'Enter a message: Enter to send, Shift+Enter for a new line',
 }: {
   disabled?: boolean
+  initialValue?: string
   onSend: (text: string) => void
   placeholder?: string
 }) {
   const textarea = useRef<TextareaRenderable>(null)
-  const [lineCount, setLineCount] = useState(1)
+  const [lineCount, setLineCount] = useState(() => initialValue?.split('\n').length ?? 1)
   const { height } = useTerminalDimensions()
   const textareaHeight = Math.max(1, Math.min(lineCount, Math.floor(height / 2)))
 
@@ -37,6 +39,7 @@ export function ChatTextarea({
       height={textareaHeight}
       flexShrink={0}
       placeholder={placeholder}
+      initialValue={initialValue}
       keyBindings={[
         { name: 'return', action: 'submit' },
         { name: 'kpenter', action: 'submit' },

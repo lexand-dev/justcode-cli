@@ -9,7 +9,7 @@ const options: {
 }[] = [
   { name: "Yes (y)", description: "", value: "once" },
   {
-    name: "Yes, allow all commands this session (a)",
+    name: "Yes, and don't ask again this session (a)",
     description: "",
     value: "session"
   },
@@ -50,19 +50,12 @@ export function ToolApprovalPrompt({
       borderStyle="rounded"
       borderColor={theme.warning}
       paddingX={1}
-      title={
-        request.toolName === "bash"
-          ? " Run command? "
-          : ` Run ${request.toolName}? `
-      }
+      title={` ${request.title} `}
     >
       {request.description ? (
         <text fg={theme.muted}>{request.description}</text>
       ) : null}
-      <text>
-        <span fg={theme.toolName}>$ </span>
-        {request.summary}
-      </text>
+      <text>{request.summary}</text>
       {pendingCount > 1 ? (
         <text fg={theme.muted}>{pendingCount - 1} more waiting</text>
       ) : null}

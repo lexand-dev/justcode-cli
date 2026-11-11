@@ -1,7 +1,8 @@
 import { readFile as readBytes, stat } from "node:fs/promises";
-import { tool } from "ai";
+import { tool, type DeepPartial } from "ai";
 import { z } from "zod";
 import { isBinary } from "../../core/walk";
+import { plural } from "../../core/describe";
 import type { ToolContext } from "../../core/tool-context";
 
 const DEFAULT_LINE_LIMIT = 2000;
@@ -55,4 +56,12 @@ async function execute(input: z.infer<typeof inputSchema>, { workspace }: ToolCo
   };
 }
 
-export const readFile = { tool: readFileTool, inputSchema, execute };
+function describeInput(input: DeepPartial<z.infer<typeof inputSchema>>) {
+  return input.path;
+}
+
+function describeOutput(output: z.infer<typeof outputSchema>) {
+  return plural(output.endLine - output.startLine + 1, "line");
+}
+
+export const readFile = { tool: readFileTool, inputSchema, execute, describeInput, describeOutput };

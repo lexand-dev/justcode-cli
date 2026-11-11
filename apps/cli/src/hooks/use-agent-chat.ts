@@ -1,6 +1,6 @@
 import { useChat } from '@ai-sdk/react'
 import type { ChatUIMessage } from '@justcode/tools'
-import { executeToolCall, parseToolInput, toolNeedsApproval } from '@justcode/tools/execute'
+import { describeToolApproval, executeToolCall } from '@justcode/tools/execute'
 import {
   DefaultChatTransport,
   type ChatOnToolCallCallback,
@@ -9,7 +9,7 @@ import {
 } from 'ai'
 import { useEffect, useMemo, useRef } from 'react'
 import { client } from '../lib/client'
-import { TOOL_DENIED_MESSAGE, type ApprovalRequest } from '../lib/tool-approval'
+import { toolDeniedError } from '../lib/tool-approval'
 import { workspace } from '../lib/workspace'
 import { useToolApprovals, type ToolApprovals } from './use-tool-approvals'
 
@@ -36,29 +36,21 @@ function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error)
 }
 
-/** What the approval prompt shows for a call; validates the input, like `executeToolCall` does. */
-function approvalRequestFor(toolCall: AgentToolCall): ApprovalRequest {
-  const { toolCallId, toolName } = toolCall
-  if (toolName === 'bash') {
-    const { command, description } = parseToolInput('bash', toolCall.input)
-    return { toolCallId, toolName, summary: command, description }
-  }
-  return { toolCallId, toolName, summary: JSON.stringify(parseToolInput(toolName, toolCall.input)) }
-}
-
 /**
  * Runs a tool call against the workspace. Tools that can act outside the workspace guardrail,
- * such as bash, run only once approved; a denial throws `TOOL_DENIED_MESSAGE`.
+ * such as bash, run only once approved; a denial throws `toolDeniedError()`.
  */
 async function runToolCall(
   toolCall: AgentToolCall,
   { requestApproval, abortSignal }: { requestApproval: ToolApprovals['requestApproval']; abortSignal?: AbortSignal },
 ) {
-  if (toolNeedsApproval(toolCall.toolName)) {
-    const decision = await requestApproval(approvalRequestFor(toolCall))
-    if (decision === 'deny') throw new Error(TOOL_DENIED_MESSAGE)
+  const { toolCallId, toolName } = toolCall
+  const approval = describeToolApproval(toolName, toolCall.input)
+  if (approval) {
+    const decision = await requestApproval({ ...approval, toolCallId, toolName })
+    if (decision === 'deny') throw toolDeniedError()
   }
-  return executeToolCall(toolCall.toolName, toolCall.input, { workspace, abortSignal })
+  return executeToolCall(toolName, toolCall.input, { workspace, abortSignal })
 }
 
 /** Aborts running tools (such as a shell command) when the chat unmounts. */

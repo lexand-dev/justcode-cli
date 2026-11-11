@@ -1,7 +1,8 @@
 import path from "node:path";
-import { tool } from "ai";
+import { tool, type DeepPartial } from "ai";
 import { z } from "zod";
 import { resolveDirectory, walkFiles } from "../../core/walk";
+import { plural } from "../../core/describe";
 import type { ToolContext } from "../../core/tool-context";
 
 const MAX_FILES = 500;
@@ -39,4 +40,12 @@ async function execute(input: z.infer<typeof inputSchema>, { workspace }: ToolCo
   return { files, truncated: false };
 }
 
-export const listFiles = { tool: listFilesTool, inputSchema, execute };
+function describeInput(input: DeepPartial<z.infer<typeof inputSchema>>) {
+  return input.pattern ?? input.path;
+}
+
+function describeOutput(output: z.infer<typeof outputSchema>) {
+  return `${plural(output.files.length, "file")}${output.truncated ? " (truncated)" : ""}`;
+}
+
+export const listFiles = { tool: listFilesTool, inputSchema, execute, describeInput, describeOutput };

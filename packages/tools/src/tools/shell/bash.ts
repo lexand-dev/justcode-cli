@@ -1,5 +1,6 @@
-import { tool } from "ai";
+import { tool, type DeepPartial } from "ai";
 import { z } from "zod";
+import { firstLine } from "../../core/describe";
 import type { ToolContext } from "../../core/tool-context";
 import { resolveDirectory } from "../../core/walk";
 import { runCommand } from "./run-command";
@@ -66,4 +67,38 @@ async function execute(
   });
 }
 
-export const bash = { tool: bashTool, inputSchema, execute, needsApproval: true };
+function describeInput(input: DeepPartial<z.infer<typeof inputSchema>>) {
+  return input.command === undefined ? undefined : firstLine(input.command, 80);
+}
+
+function describeOutput(output: z.infer<typeof outputSchema>) {
+  if (output.timedOut) return "timed out";
+  return output.exitCode === null ? "killed" : `exit ${output.exitCode}`;
+}
+
+function describeApproval(input: z.infer<typeof inputSchema>) {
+  return { title: "Run command?", summary: `$ ${input.command}`, description: input.description };
+}
+
+function isFailedOutput(output: z.infer<typeof outputSchema>) {
+  return output.exitCode !== 0;
+}
+
+const PREVIEW_LINES = 4;
+
+function previewOutput(output: z.infer<typeof outputSchema>) {
+  const lines = output.output.trimEnd().split("\n").filter((line) => line.length > 0);
+  const shown = lines.slice(-PREVIEW_LINES).map((line) => firstLine(line, 120));
+  return lines.length > PREVIEW_LINES ? [`… ${lines.length - PREVIEW_LINES} more lines`, ...shown] : shown;
+}
+
+export const bash = {
+  tool: bashTool,
+  inputSchema,
+  execute,
+  describeApproval,
+  describeInput,
+  describeOutput,
+  previewOutput,
+  isFailedOutput
+};

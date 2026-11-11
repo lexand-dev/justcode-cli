@@ -1,6 +1,6 @@
 import { mkdir, stat, writeFile as writeBytes } from "node:fs/promises";
 import path from "node:path";
-import { tool } from "ai";
+import { tool, type DeepPartial } from "ai";
 import { z } from "zod";
 import type { ToolContext } from "../../core/tool-context";
 
@@ -34,4 +34,12 @@ async function execute(input: z.infer<typeof inputSchema>, { workspace }: ToolCo
   return { path: file.relative, created: existing === null, bytes: Buffer.byteLength(input.content, "utf8") };
 }
 
-export const writeFile = { tool: writeFileTool, inputSchema, execute };
+function describeInput(input: DeepPartial<z.infer<typeof inputSchema>>) {
+  return input.path;
+}
+
+function describeOutput(output: z.infer<typeof outputSchema>) {
+  return output.created ? "created" : "overwritten";
+}
+
+export const writeFile = { tool: writeFileTool, inputSchema, execute, describeInput, describeOutput };

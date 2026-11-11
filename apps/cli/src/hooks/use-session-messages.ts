@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { safeValidateUIMessages } from "ai";
 import { useEffect, useState } from "react";
-import type { ChatUIMessage } from "@justcode/tools";
+import { agentTools, type ChatUIMessage } from "@justcode/tools";
 import { client } from "../lib/client";
 
 const sessionMessagesSchema = z.object({ messages: z.array(z.unknown()) });
@@ -27,8 +27,12 @@ async function fetchSessionMessages(
   // safeValidateUIMessages rejects an empty list; a new session has no messages yet.
   if (body.data.messages.length === 0) return [];
 
+  // With `tools`, each tool call's input and output are checked against the tool's schemas,
+  // as the server does; without them the SDK skips tool parts entirely. Finished calls to tools
+  // this CLI no longer has become dynamic tool parts instead of failing.
   const validated = await safeValidateUIMessages<ChatUIMessage>({
-    messages: body.data.messages
+    messages: body.data.messages,
+    tools: agentTools
   });
   if (!validated.success)
     throw new Error("The session contains invalid messages.");

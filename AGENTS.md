@@ -43,7 +43,7 @@ The server owns the history; the client sends only its newest message. `src/rout
 
 - Prisma 7, without migration files yet: the schema is applied with `prisma db push`. Before the first shared or deployed database, create a baseline migration (`prisma migrate dev --name init` against an empty database) and use migrations from then on.
 - Two entry points: `@justcode/db` exports only the generated model types, so any app, including the CLI, can `import type` them; `@justcode/db/client` exports the `prisma` client and is server-only.
-- Each `Message` row is one AI SDK `UIMessage`, its `parts` stored as JSONB and ordered by `position`. Validate loaded parts with `safeValidateUIMessages`.
+- Each `Message` row is one AI SDK `UIMessage`, its `parts` stored as JSONB and ordered by `position`. Validate loaded messages with `safeValidateUIMessages` and `tools: agentTools`, on the server and in the CLI: without `tools`, the SDK skips tool inputs and outputs entirely.
 - Setup: `docker compose up -d` starts Postgres; set `DATABASE_URL` in both `packages/db/.env` (Prisma CLI) and `apps/server/.env` (server), following the `.env.example` files. The generated client (`packages/db/generated/`) is gitignored and created by `bun install` or `bun run db:generate`.
 - Schema changes: edit `packages/db/prisma/schema.prisma`, then `bun run db:push`, which also regenerates the client (Prisma 7 does not regenerate on push). A change that drops data needs `bunx prisma db push --accept-data-loss` from `packages/db`; a renamed field is applied as a drop plus an add.
 - `bun run db:reset` wipes all data and recreates the tables without asking. `prisma migrate reset` does not apply, since there are no migrations.

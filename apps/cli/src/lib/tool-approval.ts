@@ -1,13 +1,10 @@
 import type { AgentToolName } from '@justcode/tools'
+import type { ApprovalPrompt } from '@justcode/tools/execute'
 
-/** A tool call waiting for the user's decision (see `toolNeedsApproval`). */
-export type ApprovalRequest = {
+/** A tool call waiting for the user's decision (see `describeToolApproval`). */
+export type ApprovalRequest = ApprovalPrompt & {
   toolCallId: string
   toolName: AgentToolName
-  /** What will run, e.g. the shell command. */
-  summary: string
-  /** The model's short explanation of the call, when it gave one. */
-  description?: string
 }
 
 /** Run this call, run every call for the rest of the session, or refuse. */

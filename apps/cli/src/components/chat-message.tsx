@@ -1,5 +1,11 @@
 import type { AgentTools, ChatUIMessage } from '@justcode/tools'
-import { describeToolInput, describeToolOutput, isAgentToolName, previewToolOutput } from '@justcode/tools/execute'
+import {
+  describeToolInput,
+  describeToolOutput,
+  isAgentToolName,
+  isFailedToolOutput,
+  previewToolOutput,
+} from '@justcode/tools/execute'
 import {
   getToolName,
   isStaticToolUIPart,
@@ -13,26 +19,27 @@ import { TOOL_DENIED_MESSAGE } from '../lib/tool-approval'
 
 type AgentToolPart = ToolUIPart<InferUITools<AgentTools>>
 
-type ToolDescription = { target?: string; summary?: string; preview: string[] }
+type ToolDescription = { target?: string; summary?: string; preview: string[]; failed: boolean }
 
 /**
- * What a call targets (e.g. `src/app.ts`), its result summary (e.g. `12 lines`), and the result lines
- * shown under it, as each tool describes them.
+ * What a call targets (e.g. `src/app.ts`), its result summary (e.g. `12 lines`), the result lines
+ * shown under it, and whether the result reports a failure, as each tool describes them.
  */
 function describeToolCall(part: AgentToolPart | DynamicToolUIPart): ToolDescription {
   const name = getToolName(part)
-  if (!isStaticToolUIPart(part) || !isAgentToolName(name)) return { preview: [] }
+  if (!isStaticToolUIPart(part) || !isAgentToolName(name)) return { preview: [], failed: false }
   const done = part.state === 'output-available'
   return {
     target: part.input === undefined ? undefined : describeToolInput(name, part.input),
     summary: done ? describeToolOutput(name, part.output) : undefined,
     preview: done ? previewToolOutput(name, part.output) : [],
+    failed: done && isFailedToolOutput(name, part.output),
   }
 }
 
 type ToolStatus = { color: string; label: string; detail?: string }
 
-function toolStatus(part: AgentToolPart | DynamicToolUIPart, summary: string | undefined): ToolStatus {
+function toolStatus(part: AgentToolPart | DynamicToolUIPart, { summary, failed }: ToolDescription): ToolStatus {
   switch (part.state) {
     case 'input-streaming':
       return { color: theme.running, label: 'preparing…' }
@@ -44,10 +51,8 @@ function toolStatus(part: AgentToolPart | DynamicToolUIPart, summary: string | u
       return part.approval.approved
         ? { color: theme.running, label: 'approved' }
         : { color: theme.error, label: 'denied' }
-    case 'output-available': {
-      const failedCommand = part.type === 'tool-bash' && part.output.exitCode !== 0
-      return { color: failedCommand ? theme.error : theme.success, label: summary ?? (part.preliminary ? 'partial result' : 'done') }
-    }
+    case 'output-available':
+      return { color: failed ? theme.error : theme.success, label: summary ?? (part.preliminary ? 'partial result' : 'done') }
     case 'output-error':
       return part.errorText === TOOL_DENIED_MESSAGE
         ? { color: theme.error, label: 'denied' }
@@ -58,8 +63,9 @@ function toolStatus(part: AgentToolPart | DynamicToolUIPart, summary: string | u
 }
 
 function ToolPart({ part }: { part: AgentToolPart | DynamicToolUIPart }) {
-  const { target, summary, preview } = describeToolCall(part)
-  const status = toolStatus(part, summary)
+  const description = describeToolCall(part)
+  const { target, preview } = description
+  const status = toolStatus(part, description)
 
   return (
     <box flexDirection="column">

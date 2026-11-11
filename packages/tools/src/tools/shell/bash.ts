@@ -76,6 +76,14 @@ function describeOutput(output: z.infer<typeof outputSchema>) {
   return output.exitCode === null ? "killed" : `exit ${output.exitCode}`;
 }
 
+function describeApproval(input: z.infer<typeof inputSchema>) {
+  return { title: "Run command?", summary: `$ ${input.command}`, description: input.description };
+}
+
+function isFailedOutput(output: z.infer<typeof outputSchema>) {
+  return output.exitCode !== 0;
+}
+
 const PREVIEW_LINES = 4;
 
 function previewOutput(output: z.infer<typeof outputSchema>) {
@@ -84,4 +92,13 @@ function previewOutput(output: z.infer<typeof outputSchema>) {
   return lines.length > PREVIEW_LINES ? [`… ${lines.length - PREVIEW_LINES} more lines`, ...shown] : shown;
 }
 
-export const bash = { tool: bashTool, inputSchema, execute, needsApproval: true, describeInput, describeOutput, previewOutput };
+export const bash = {
+  tool: bashTool,
+  inputSchema,
+  execute,
+  describeApproval,
+  describeInput,
+  describeOutput,
+  previewOutput,
+  isFailedOutput
+};

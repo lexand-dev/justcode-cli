@@ -11,6 +11,10 @@ export const theme = {
   success: '#9ece6a',
   error: '#f7768e',
   warning: '#e0af68',
+  /** Inline and fenced code, and numbers inside code. */
+  code: '#ff9e64',
+  /** Type names inside fenced code. */
+  codeType: '#2ac3de',
 } as const
 
 /** Styles for Markdown markers and fenced code in assistant replies. */
@@ -19,8 +23,8 @@ export const markdownStyle = SyntaxStyle.fromStyles({
   'markup.strong': { bold: true },
   'markup.italic': { italic: true },
   'markup.strikethrough': { dim: true },
-  'markup.raw': { fg: '#ff9e64' },
-  'markup.raw.block': { fg: '#ff9e64' },
+  'markup.raw': { fg: theme.code },
+  'markup.raw.block': { fg: theme.code },
   'markup.link': { fg: theme.toolName, underline: true },
   'markup.link.label': { fg: theme.toolName },
   'markup.link.url': { fg: theme.toolName, underline: true },
@@ -31,6 +35,6 @@ export const markdownStyle = SyntaxStyle.fromStyles({
   string: { fg: theme.success },
   comment: { fg: theme.muted, italic: true },
   function: { fg: theme.user },
-  number: { fg: '#ff9e64' },
-  type: { fg: '#2ac3de' },
+  number: { fg: theme.code },
+  type: { fg: theme.codeType },
 })

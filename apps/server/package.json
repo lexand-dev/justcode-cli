@@ -4,8 +4,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./app": "./src/app.ts",
-    "./chat-tools": "./src/chat-tools.ts"
+    "./app": "./src/app.ts"
   },
   "scripts": {
     "dev": "bun --hot src/index.ts",
@@ -15,6 +14,7 @@
     "@ai-sdk/deepseek": "^3.0.56",
     "@hono/zod-validator": "^0.9.1",
     "@justcode/db": "workspace:*",
+    "@justcode/tools": "workspace:*",
     "ai": "^7.0.122",
     "hono": "^4.13.10",
     "zod": "^4.6.5"

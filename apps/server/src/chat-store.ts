@@ -1,6 +1,6 @@
 import { prisma, type Prisma } from "@justcode/db/client";
 import { safeValidateUIMessages } from "ai";
-import { chatTools, type ChatUIMessage } from "./chat-tools";
+import { agentTools, type ChatUIMessage } from "@justcode/tools";
 
 const TITLE_MAX_LENGTH = 100;
 
@@ -44,7 +44,7 @@ export async function loadChat(sessionId: string): Promise<StoredChat> {
 
   const validated = await safeValidateUIMessages<ChatUIMessage>({
     messages: session.messages,
-    tools: chatTools
+    tools: agentTools
   });
   return validated.success ? { status: "ok", messages: validated.data } : { status: "invalid" };
 }

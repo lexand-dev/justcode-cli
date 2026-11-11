@@ -23,7 +23,13 @@ bun run start:cli     # interactive terminal welcome screen
 
 The server listens on the `PORT` in `apps/server/.env`, and the CLI connects to the `PORT` in `apps/cli/.env`. Both default to `3000`; keep the values the same when changing ports.
 
-The server exposes `POST /chat` and `GET /health` (used by the CLI's server-status indicator). Press `Ctrl+C` to leave the CLI. Run `bun run typecheck` to check both workspaces.
+The server exposes `POST /sessions`, `GET /sessions/:sessionId/messages`, `POST /chat/:sessionId`, and `GET /health` (used by the CLI's server-status indicator).
+
+## Coding agent
+
+JustCode works on the directory the CLI is launched from. The model can call five file tools (`readFile`, `writeFile`, `editFile`, `listFiles`, and `searchFiles`) and `bash`. The server only forwards these tool calls; the CLI runs them locally. Every file tool path is confined to the launch directory (paths outside it, including through symlinks, are rejected). Shell commands cannot be confined that way, so the CLI asks before running each one: press `y` to run it, `a` to allow every command for the rest of the session, or `n`/`Esc` to deny it. Commands run non-interactively in the launch directory, stop after 2 minutes by default, and have long output trimmed.
+
+The tools live in `packages/tools/src/tools/<group>/` (`filesystem/`, `shell/`), one file per tool, with shared infrastructure in `src/core/`. To add a tool, create its file in the matching group, then register it in `src/index.ts` and `src/execute.ts`. Press `Ctrl+C` to leave the CLI. Run `bun run typecheck` to check both workspaces.
 
 ## Server routes
 

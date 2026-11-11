@@ -9,6 +9,7 @@
     "@ai-sdk/react": "4.0.125",
     "@justcode/db": "workspace:*",
     "@justcode/shared": "workspace:*",
+    "@justcode/tools": "workspace:*",
     "@opentui/core": "^0.5.12",
     "@opentui/react": "^0.5.12",
     "ai": "7.0.122",

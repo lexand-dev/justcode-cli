@@ -17,6 +17,7 @@
         "@ai-sdk/react": "4.0.125",
         "@justcode/db": "workspace:*",
         "@justcode/shared": "workspace:*",
+        "@justcode/tools": "workspace:*",
         "@opentui/core": "^0.5.12",
         "@opentui/react": "^0.5.12",
         "ai": "7.0.122",
@@ -35,6 +36,7 @@
         "@ai-sdk/deepseek": "^3.0.56",
         "@hono/zod-validator": "^0.9.1",
         "@justcode/db": "workspace:*",
+        "@justcode/tools": "workspace:*",
         "ai": "^7.0.122",
         "hono": "^4.13.10",
         "zod": "^4.6.5",
@@ -54,6 +56,13 @@
     },
     "packages/shared": {
       "name": "@justcode/shared",
+    },
+    "packages/tools": {
+      "name": "@justcode/tools",
+      "dependencies": {
+        "ai": "7.0.122",
+        "zod": "^4.6.5",
+      },
     },
   },
   "packages": {
@@ -138,6 +147,8 @@
     "@justcode/server": ["@justcode/server@workspace:apps/server"],
 
     "@justcode/shared": ["@justcode/shared@workspace:packages/shared"],
+
+    "@justcode/tools": ["@justcode/tools@workspace:packages/tools"],
 
     "@opentui/core": ["@opentui/core@0.5.12", "", { "dependencies": { "bun-ffi-structs": "0.3.1", "diff": "9.0.0", "marked": "17.0.1", "string-width": "7.2.0", "strip-ansi": "7.1.2" }, "optionalDependencies": { "@opentui/core-darwin-arm64": "0.5.12", "@opentui/core-darwin-x64": "0.5.12", "@opentui/core-linux-arm64": "0.5.12", "@opentui/core-linux-arm64-musl": "0.5.12", "@opentui/core-linux-x64": "0.5.12", "@opentui/core-linux-x64-musl": "0.5.12", "@opentui/core-win32-arm64": "0.5.12", "@opentui/core-win32-x64": "0.5.12" }, "peerDependencies": { "web-tree-sitter": "0.25.10" } }, "sha512-ZXBE5gmvdovmV8zJQrOQf6E44v1tJRDEgrM2MYhEglzgXZ+smIUp95O8zeRYGsuIzQIiMPMgQqKtTJuzvAb7BQ=="],
 

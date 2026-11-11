@@ -1,8 +1,9 @@
 import { readFile as readBytes, stat } from "node:fs/promises";
 import path from "node:path";
-import { tool } from "ai";
+import { tool, type DeepPartial } from "ai";
 import { z } from "zod";
 import { isBinary, resolveDirectory, walkFiles } from "../../core/walk";
+import { plural } from "../../core/describe";
 import type { ToolContext } from "../../core/tool-context";
 
 const MAX_MATCHES = 200;
@@ -62,4 +63,12 @@ async function execute(input: z.infer<typeof inputSchema>, { workspace }: ToolCo
   return { matches, truncated: false };
 }
 
-export const searchFiles = { tool: searchFilesTool, inputSchema, execute };
+function describeInput(input: DeepPartial<z.infer<typeof inputSchema>>) {
+  return input.pattern;
+}
+
+function describeOutput(output: z.infer<typeof outputSchema>) {
+  return `${plural(output.matches.length, "match")}${output.truncated ? " (truncated)" : ""}`;
+}
+
+export const searchFiles = { tool: searchFilesTool, inputSchema, execute, describeInput, describeOutput };

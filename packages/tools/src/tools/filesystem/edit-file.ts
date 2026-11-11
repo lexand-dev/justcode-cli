@@ -1,6 +1,7 @@
 import { readFile as readText, stat, writeFile as writeText } from "node:fs/promises";
-import { tool } from "ai";
+import { tool, type DeepPartial } from "ai";
 import { z } from "zod";
+import { plural } from "../../core/describe";
 import type { ToolContext } from "../../core/tool-context";
 
 const inputSchema = z.object({
@@ -56,4 +57,12 @@ async function execute(input: z.infer<typeof inputSchema>, { workspace }: ToolCo
   return { path: file.relative, replacements: input.replaceAll ? occurrences : 1 };
 }
 
-export const editFile = { tool: editFileTool, inputSchema, execute };
+function describeInput(input: DeepPartial<z.infer<typeof inputSchema>>) {
+  return input.path;
+}
+
+function describeOutput(output: z.infer<typeof outputSchema>) {
+  return plural(output.replacements, "replacement");
+}
+
+export const editFile = { tool: editFileTool, inputSchema, execute, describeInput, describeOutput };

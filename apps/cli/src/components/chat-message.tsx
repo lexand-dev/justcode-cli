@@ -1,4 +1,5 @@
 import type { AgentTools, ChatUIMessage } from '@justcode/tools'
+import { describeToolInput, describeToolOutput, isAgentToolName, previewToolOutput } from '@justcode/tools/execute'
 import {
   getToolName,
   isStaticToolUIPart,
@@ -12,58 +13,20 @@ import { TOOL_DENIED_MESSAGE } from '../lib/tool-approval'
 
 type AgentToolPart = ToolUIPart<InferUITools<AgentTools>>
 
-/** The file, directory, or pattern a tool call targets, e.g. `src/app.ts`. */
-function describeInput(part: AgentToolPart): string | undefined {
-  if (!part.input) return undefined
-  switch (part.type) {
-    case 'tool-readFile':
-    case 'tool-writeFile':
-    case 'tool-editFile':
-      return part.input.path
-    case 'tool-listFiles':
-      return part.input.pattern ?? part.input.path
-    case 'tool-searchFiles':
-      return part.input.pattern
-    case 'tool-bash':
-      return part.input.command === undefined ? undefined : firstLine(part.input.command, 80)
-  }
-}
+type ToolDescription = { target?: string; summary?: string; preview: string[] }
 
-/** The first line of `text`, at most `maxLength` characters; an ellipsis marks anything left out. */
-function firstLine(text: string, maxLength: number) {
-  const [line = ''] = text.split('\n')
-  const kept = line.length > maxLength ? line.slice(0, maxLength - 1) : line
-  return kept === text ? text : `${kept}…`
-}
-
-const PREVIEW_LINES = 4
-
-/** The last lines of a command's output, shown under the call. */
-function outputPreview(part: AgentToolPart): string[] {
-  if (part.type !== 'tool-bash' || part.state !== 'output-available') return []
-  const lines = part.output.output.trimEnd().split('\n').filter((line) => line.length > 0)
-  const shown = lines.slice(-PREVIEW_LINES).map((line) => firstLine(line, 120))
-  return lines.length > PREVIEW_LINES ? [`… ${lines.length - PREVIEW_LINES} more lines`, ...shown] : shown
-}
-
-/** A short result summary, e.g. `1 replacement`. */
-function describeOutput(part: AgentToolPart): string | undefined {
-  if (part.state !== 'output-available') return undefined
-  const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ? '' : 's'}`
-  switch (part.type) {
-    case 'tool-readFile':
-      return plural(part.output.endLine - part.output.startLine + 1, 'line')
-    case 'tool-writeFile':
-      return part.output.created ? 'created' : 'overwritten'
-    case 'tool-editFile':
-      return plural(part.output.replacements, 'replacement')
-    case 'tool-listFiles':
-      return `${plural(part.output.files.length, 'file')}${part.output.truncated ? ' (truncated)' : ''}`
-    case 'tool-searchFiles':
-      return `${plural(part.output.matches.length, 'match')}${part.output.truncated ? ' (truncated)' : ''}`
-    case 'tool-bash':
-      if (part.output.timedOut) return 'timed out'
-      return part.output.exitCode === null ? 'killed' : `exit ${part.output.exitCode}`
+/**
+ * What a call targets (e.g. `src/app.ts`), its result summary (e.g. `12 lines`), and the result lines
+ * shown under it, as each tool describes them.
+ */
+function describeToolCall(part: AgentToolPart | DynamicToolUIPart): ToolDescription {
+  const name = getToolName(part)
+  if (!isStaticToolUIPart(part) || !isAgentToolName(name)) return { preview: [] }
+  const done = part.state === 'output-available'
+  return {
+    target: part.input === undefined ? undefined : describeToolInput(name, part.input),
+    summary: done ? describeToolOutput(name, part.output) : undefined,
+    preview: done ? previewToolOutput(name, part.output) : [],
   }
 }
 
@@ -95,10 +58,8 @@ function toolStatus(part: AgentToolPart | DynamicToolUIPart, summary: string | u
 }
 
 function ToolPart({ part }: { part: AgentToolPart | DynamicToolUIPart }) {
-  const target = isStaticToolUIPart(part) ? describeInput(part) : undefined
-  const summary = isStaticToolUIPart(part) ? describeOutput(part) : undefined
+  const { target, summary, preview } = describeToolCall(part)
   const status = toolStatus(part, summary)
-  const preview = isStaticToolUIPart(part) ? outputPreview(part) : []
 
   return (
     <box flexDirection="column">

@@ -9,7 +9,7 @@ import {
 } from 'ai'
 import { useEffect, useMemo, useRef } from 'react'
 import { client } from '../lib/client'
-import { TOOL_DENIED_MESSAGE } from '../lib/tool-approval'
+import { toolDeniedError } from '../lib/tool-approval'
 import { workspace } from '../lib/workspace'
 import { useToolApprovals, type ToolApprovals } from './use-tool-approvals'
 
@@ -38,7 +38,7 @@ function errorMessage(error: unknown) {
 
 /**
  * Runs a tool call against the workspace. Tools that can act outside the workspace guardrail,
- * such as bash, run only once approved; a denial throws `TOOL_DENIED_MESSAGE`.
+ * such as bash, run only once approved; a denial throws `toolDeniedError()`.
  */
 async function runToolCall(
   toolCall: AgentToolCall,
@@ -48,7 +48,7 @@ async function runToolCall(
   const approval = describeToolApproval(toolName, toolCall.input)
   if (approval) {
     const decision = await requestApproval({ ...approval, toolCallId, toolName })
-    if (decision === 'deny') throw new Error(TOOL_DENIED_MESSAGE)
+    if (decision === 'deny') throw toolDeniedError()
   }
   return executeToolCall(toolName, toolCall.input, { workspace, abortSignal })
 }

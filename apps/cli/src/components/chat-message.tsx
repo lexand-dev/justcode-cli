@@ -15,7 +15,7 @@ import {
   type ToolUIPart,
 } from 'ai'
 import { markdownStyle, theme } from '../lib/theme'
-import { TOOL_DENIED_MESSAGE } from '../lib/tool-approval'
+import { isToolDeniedError } from '../lib/tool-approval'
 
 type AgentToolPart = ToolUIPart<InferUITools<AgentTools>>
 
@@ -54,7 +54,7 @@ function toolStatus(part: AgentToolPart | DynamicToolUIPart, { summary, failed }
     case 'output-available':
       return { color: failed ? theme.error : theme.success, label: summary ?? (part.preliminary ? 'partial result' : 'done') }
     case 'output-error':
-      return part.errorText === TOOL_DENIED_MESSAGE
+      return isToolDeniedError(part.errorText)
         ? { color: theme.error, label: 'denied' }
         : { color: theme.error, label: 'failed', detail: part.errorText }
     case 'output-denied':

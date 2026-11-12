@@ -12,6 +12,7 @@
 
 - `src/index.ts` exports Bun's server config (`fetch: app.fetch`); the Hono app is `src/app.ts`. `dev:server` hot-reloads, `start:server` does not.
 - One file per route group in `src/routes/`, flat. Each exports a chained `Hono` app with paths relative to its mount point (`"/"` for the group root). `app.ts` only mounts groups (`.route("/chat", chatRoutes)`) and exports `AppType`, which the CLI's Hono RPC client uses for route types; handlers live in the route files.
+- The agent (provider, model, system prompt, `ToolLoopAgent`) lives in `src/agent/`; routes run `codingAgent` (`src/agent/coding-agent.ts`) and never configure the model. It stays server-only: the CLI must not import it, so shared types such as `ChatUIMessage` stay in `@justcode/tools`. Move it to its own package only when a second app needs to run the agent.
 - Validate bodies with `zValidator("json", schema)` and read them through `c.req.valid("json")`; `c.req.json<T>()` only asserts a type. For AI SDK messages, Zod checks the envelope and `safeValidateUIMessages` checks the parts before `convertToModelMessages`; invalid input is a 400.
 - To exercise routes without a server, call `app.request()` from `src/app.ts` with `bun -e`, run from `apps/server` so its `.env` loads. The Hono CLI (`hono request`) cannot load this app: it runs under Node, which cannot resolve the TypeScript `@justcode/db` package.
 

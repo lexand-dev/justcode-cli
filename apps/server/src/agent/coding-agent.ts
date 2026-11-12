@@ -1,6 +1,7 @@
 import { createDeepSeek } from "@ai-sdk/deepseek";
 import { agentTools } from "@justcode/tools";
 import { ToolLoopAgent } from "ai";
+import { env } from "../env";
 import { INSTRUCTIONS } from "./instructions";
 
 const deepSeek = createDeepSeek({ baseURL: "https://api.deepseek.com/beta" });
@@ -10,7 +11,7 @@ export const MODEL_ID = "deepseek-v4-flash";
 
 /** Whether the provider's API key is set, so the agent can run. */
 export function isAgentConfigured() {
-  return Boolean(process.env.DEEPSEEK_API_KEY);
+  return env.DEEPSEEK_API_KEY !== undefined;
 }
 
 /**

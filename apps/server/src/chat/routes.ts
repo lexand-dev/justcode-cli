@@ -1,21 +1,20 @@
 import { zValidator } from "@hono/zod-validator";
-import { agentTools, type ChatUIMessage } from "@justcode/tools";
 import {
   convertToModelMessages,
   createIdGenerator,
   createUIMessageStreamResponse,
-  safeValidateUIMessages,
   toUIMessageStream
 } from "ai";
 import { Hono } from "hono";
 import { z } from "zod";
 import { codingAgent, isAgentConfigured, MODEL_ID } from "../agent/coding-agent";
-import { isMessageInOtherSession, loadChat, saveChat } from "../chat-store";
-import { sessionParamSchema } from "./sessions";
+import { sessionParamSchema } from "../sessions/params";
+import { storedSessionError } from "../sessions/responses";
+import { isMessageInOtherSession, loadSessionMessages, saveSessionMessages, validateMessages } from "../sessions/store";
+import { resolveTurn } from "./turn";
 
 // The CLI sends only its newest message; the history is loaded from the database.
-// A `user` message starts (or retries) a turn. An `assistant` message continues the latest
-// stored assistant message after the CLI has run its tool calls and filled in the outputs.
+// `resolveTurn` (./turn.ts) holds the rules for user messages, retries and continuations.
 const chatRequestSchema = z.object({
   message: z.object({
     id: z.string().min(1),
@@ -33,27 +32,21 @@ export const chatRoutes = new Hono()
     const { sessionId } = c.req.valid("param");
     const { message } = c.req.valid("json");
 
-    const stored = await loadChat(sessionId);
-    if (stored.status === "not-found") return c.text("Session not found.", 404);
-    if (stored.status === "invalid") return c.text("Stored messages are invalid.", 500);
+    const stored = await loadSessionMessages(sessionId);
+    if (stored.status !== "ok") return storedSessionError(c, stored);
 
-    // A resent message that is already stored replaces it, and anything after it is dropped.
-    const storedIndex = stored.messages.findIndex((storedMessage) => storedMessage.id === message.id);
-    if (storedIndex === -1 && await isMessageInOtherSession(message.id, sessionId)) {
-      return c.text("Message id belongs to another session.", 409);
-    }
-    if (storedIndex !== -1 && stored.messages[storedIndex]?.role !== message.role) {
-      return c.text("Message role does not match the stored message.", 400);
-    }
-    if (message.role === "assistant" && (storedIndex === -1 || storedIndex !== stored.messages.length - 1)) {
+    const turn = await resolveTurn({
+      stored: stored.messages,
+      message,
+      isInOtherSession: () => isMessageInOtherSession(message.id, sessionId)
+    });
+    if (turn.status === "other-session") return c.text("Message id belongs to another session.", 409);
+    if (turn.status === "role-mismatch") return c.text("Message role does not match the stored message.", 400);
+    if (turn.status === "not-latest-assistant") {
       return c.text("Only the latest assistant message can be continued.", 400);
     }
-    const history = storedIndex === -1 ? stored.messages : stored.messages.slice(0, storedIndex);
 
-    const validated = await safeValidateUIMessages<ChatUIMessage>({
-      messages: [...history, message],
-      tools: agentTools
-    });
+    const validated = await validateMessages([...turn.history, message]);
     if (!validated.success) {
       return c.text("Invalid message.", 400);
     }
@@ -78,7 +71,7 @@ export const chatRoutes = new Hono()
           // without it. On retry the client resends the same message.
           const toSave = outcome.status === "completed" ? finalMessages : validated.data;
           try {
-            await saveChat({ sessionId, messages: toSave, model: MODEL_ID });
+            await saveSessionMessages({ sessionId, messages: toSave, model: MODEL_ID });
           } catch (error) {
             console.error(`Failed to save chat session ${sessionId}:`, error);
           }

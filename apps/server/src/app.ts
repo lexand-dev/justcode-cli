@@ -1,7 +1,7 @@
 import { Hono } from "hono";
-import { chatRoutes } from "./routes/chat";
-import { healthRoutes } from "./routes/health";
-import { sessionRoutes } from "./routes/sessions";
+import { chatRoutes } from "./chat/routes";
+import { healthRoutes } from "./health/routes";
+import { sessionRoutes } from "./sessions/routes";
 
 const app = new Hono()
   .route("/chat", chatRoutes)

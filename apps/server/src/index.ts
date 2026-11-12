@@ -1,6 +1,7 @@
-import app from './app'
+import app from "./app";
+import { env } from "./env";
 
 export default {
-  port: Number(process.env.PORT ?? 3000),
-  fetch: app.fetch,
-}
+  port: env.PORT,
+  fetch: app.fetch
+};

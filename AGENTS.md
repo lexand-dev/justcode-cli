@@ -11,19 +11,23 @@
 ## Server (`apps/server`)
 
 - `src/index.ts` exports Bun's server config (`fetch: app.fetch`); the Hono app is `src/app.ts`. `dev:server` hot-reloads, `start:server` does not.
-- One file per route group in `src/routes/`, flat. Each exports a chained `Hono` app with paths relative to its mount point (`"/"` for the group root). `app.ts` only mounts groups (`.route("/chat", chatRoutes)`) and exports `AppType`, which the CLI's Hono RPC client uses for route types; handlers live in the route files.
-- Validate bodies with `zValidator("json", schema)` and read them through `c.req.valid("json")`; `c.req.json<T>()` only asserts a type. For AI SDK messages, Zod checks the envelope and `safeValidateUIMessages` checks the parts before `convertToModelMessages`; invalid input is a 400.
+- One folder per feature in `src/` (`chat/`, `sessions/`, `health/`). A feature's `routes.ts` exports a chained `Hono` app with paths relative to its mount point (`"/"` for the group root); its other files hold the logic (`store.ts` for persistence, pure rules such as `chat/turn.ts`). `app.ts` only mounts groups (`.route("/chat", chatRoutes)`) and exports `AppType`, which the CLI's Hono RPC client uses for route types; handlers live in the route files.
+- Features import each other's stores and helpers, never their `routes.ts`; dependencies point one way (`chat` → `sessions`, `chat` → `agent`). Shared HTTP pieces of a feature (path params, error responses) sit next to it, e.g. `sessions/params.ts`.
+- Return error responses from the handler, or from a helper the handler returns (`storedSessionError` in `sessions/responses.ts`), not from middleware: middleware responses are missing from `AppType`, and the CLI compares status codes against it.
+- Read environment variables through `env` (`src/env.ts`, validated with Zod), not `process.env`. `DATABASE_URL` is the exception: `@justcode/db/client` reads it.
+- The agent (provider, model, system prompt, `ToolLoopAgent`) lives in `src/agent/`; routes run `codingAgent` (`src/agent/coding-agent.ts`) and never configure the model. It stays server-only: the CLI must not import it, so shared types such as `ChatUIMessage` stay in `@justcode/tools`. Move it to its own package only when a second app needs to run the agent.
+- Validate bodies with `zValidator("json", schema)` and read them through `c.req.valid("json")`; `c.req.json<T>()` only asserts a type. For AI SDK messages, Zod checks the envelope and `validateMessages` (`sessions/store.ts`) checks the parts before `convertToModelMessages`; invalid input is a 400.
 - To exercise routes without a server, call `app.request()` from `src/app.ts` with `bun -e`, run from `apps/server` so its `.env` loads. The Hono CLI (`hono request`) cannot load this app: it runs under Node, which cannot resolve the TypeScript `@justcode/db` package.
 
 ## Chat protocol
 
-The server owns the history; the client sends only its newest message. `src/routes/chat.ts` and `src/chat-store.ts` hold the rules and their status codes; the invariants:
+The server owns the history; the client sends only its newest message. `src/chat/turn.ts` holds the rules, `src/chat/routes.ts` their status codes, and `src/sessions/store.ts` the persistence; the invariants:
 
 - Sessions are created by the server (`POST /sessions`) and are anonymous. Session ids come only from the URL.
 - `POST /chat/:sessionId` runs one assistant step. A `user` message starts a turn. An `assistant` message is a tool-result continuation of the latest stored message and keeps its id, so one turn is one stored assistant message.
 - A retry resends an already stored user message; the server cuts the history at it instead of duplicating it.
 - Assistant ids come from `generateMessageId`, so the stored id matches the streamed one.
-- `saveChat` (in `onEnd`) makes the stored messages match the final list. Errors are not persisted: when the step does not complete, only the incoming messages are saved. A failed save is logged and leaves the response untouched.
+- `saveSessionMessages` (in `onEnd`) makes the stored messages match the final list. Errors are not persisted: when the step does not complete, only the incoming messages are saved. A failed save is logged and leaves the response untouched.
 
 ## Tools (`packages/tools`)
 

@@ -1,6 +1,6 @@
 import { prisma, type Prisma } from "@justcode/db/client";
-import { safeValidateUIMessages } from "ai";
 import { agentTools, type ChatUIMessage } from "@justcode/tools";
+import { safeValidateUIMessages } from "ai";
 
 const TITLE_MAX_LENGTH = 100;
 
@@ -18,18 +18,26 @@ function titleFrom(messages: ChatUIMessage[]) {
   return text ? text.slice(0, TITLE_MAX_LENGTH) : null;
 }
 
+/**
+ * Validates messages against the current tools; without `tools` the SDK skips tool inputs and
+ * outputs. Used for stored messages and for the history a chat request builds.
+ */
+export function validateMessages(messages: unknown[]) {
+  return safeValidateUIMessages<ChatUIMessage>({ messages, tools: agentTools });
+}
+
 export async function createSession() {
   const session = await prisma.session.create({ data: {}, select: { id: true } });
   return session.id;
 }
 
-export type StoredChat =
+export type StoredSession =
   | { status: "not-found" }
   | { status: "invalid" }
   | { status: "ok"; messages: ChatUIMessage[] };
 
 /** Loads a session's messages in order and validates them against the current tools. */
-export async function loadChat(sessionId: string): Promise<StoredChat> {
+export async function loadSessionMessages(sessionId: string): Promise<StoredSession> {
   const session = await prisma.session.findUnique({
     where: { id: sessionId },
     select: {
@@ -42,10 +50,7 @@ export async function loadChat(sessionId: string): Promise<StoredChat> {
   if (!session) return { status: "not-found" };
   if (session.messages.length === 0) return { status: "ok", messages: [] };
 
-  const validated = await safeValidateUIMessages<ChatUIMessage>({
-    messages: session.messages,
-    tools: agentTools
-  });
+  const validated = await validateMessages(session.messages);
   return validated.success ? { status: "ok", messages: validated.data } : { status: "invalid" };
 }
 
@@ -60,7 +65,7 @@ export async function isMessageInOtherSession(messageId: string, sessionId: stri
  * Messages no longer in the list (e.g. a reply cut off by a retry) are deleted.
  * `model` is recorded only when an assistant message is first stored.
  */
-export async function saveChat({
+export async function saveSessionMessages({
   sessionId,
   messages,
   model

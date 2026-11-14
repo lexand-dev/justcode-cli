@@ -1,5 +1,5 @@
 import { useChat } from '@ai-sdk/react'
-import type { ChatUIMessage } from '@justcode/tools'
+import type { AgentMode, ChatUIMessage } from '@justcode/tools'
 import { describeToolApproval, executeToolCall } from '@justcode/tools/execute'
 import {
   DefaultChatTransport,
@@ -11,6 +11,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import { client } from '../lib/client'
 import { toolDeniedError } from '../lib/tool-approval'
 import { workspace } from '../lib/workspace'
+import { useAgentMode } from './use-agent-mode'
 import { useToolApprovals, type ToolApprovals } from './use-tool-approvals'
 
 // Stops an assistant turn from calling tools forever; the user can send a message to continue.
@@ -18,11 +19,14 @@ export const MAX_TOOL_CALLS_PER_TURN = 25
 
 type AgentToolCall = Parameters<ChatOnToolCallCallback<ChatUIMessage>>[0]['toolCall'] & { dynamic?: false }
 
-function createChatTransport(sessionId: string) {
+function createChatTransport(sessionId: string, getMode: () => AgentMode) {
   return new DefaultChatTransport<ChatUIMessage>({
     api: client.chat[':sessionId'].$url({ param: { sessionId } }).toString(),
+    // Resolved on every request, including tool-result continuations and retries, so each step
+    // runs in the mode that is active when it is sent.
+    body: () => ({ mode: getMode() }),
     // The server loads the history from the database; send only the newest message.
-    prepareSendMessagesRequest: ({ messages }) => ({ body: { message: messages.at(-1) } }),
+    prepareSendMessagesRequest: ({ messages, body }) => ({ body: { ...body, message: messages.at(-1) } }),
   })
 }
 
@@ -69,7 +73,12 @@ function useUnmountSignal() {
  * launch directory, and the assistant message is resent once every call has an output.
  */
 export function useAgentChat({ sessionId, initialMessages }: { sessionId: string; initialMessages: ChatUIMessage[] }) {
-  const transport = useMemo(() => createChatTransport(sessionId), [sessionId])
+  const { mode } = useAgentMode()
+  const modeRef = useRef(mode)
+  useEffect(() => {
+    modeRef.current = mode
+  }, [mode])
+  const transport = useMemo(() => createChatTransport(sessionId, () => modeRef.current), [sessionId])
   const approvals = useToolApprovals()
   const unmountSignal = useUnmountSignal()
 

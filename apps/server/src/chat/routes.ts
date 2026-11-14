@@ -6,6 +6,7 @@ import {
   toUIMessageStream
 } from "ai";
 import { Hono } from "hono";
+import { agentModeSchema } from "@justcode/tools";
 import { z } from "zod";
 import { codingAgent, isAgentConfigured, MODEL_ID } from "../agent/coding-agent";
 import { sessionParamSchema } from "../sessions/params";
@@ -20,7 +21,9 @@ const chatRequestSchema = z.object({
     id: z.string().min(1),
     role: z.enum(["user", "assistant"]),
     parts: z.array(z.unknown()).min(1)
-  }).passthrough()
+  }).passthrough(),
+  // The mode the CLI is in for this step; see `@justcode/tools` (`modes.ts`).
+  mode: agentModeSchema
 });
 
 export const chatRoutes = new Hono()
@@ -30,7 +33,7 @@ export const chatRoutes = new Hono()
     }
 
     const { sessionId } = c.req.valid("param");
-    const { message } = c.req.valid("json");
+    const { message, mode } = c.req.valid("json");
 
     const stored = await loadSessionMessages(sessionId);
     if (stored.status !== "ok") return storedSessionError(c, stored);
@@ -56,7 +59,8 @@ export const chatRoutes = new Hono()
     // Not `createAgentUIStreamResponse`: it converts messages without `ignoreIncompleteToolCalls`.
     const result = await codingAgent.stream({
       // Tool calls the CLI never answered (e.g. it quit mid-turn) are skipped instead of failing.
-      messages: await convertToModelMessages(validated.data, { ignoreIncompleteToolCalls: true })
+      messages: await convertToModelMessages(validated.data, { ignoreIncompleteToolCalls: true }),
+      options: { mode }
     });
 
     return createUIMessageStreamResponse({

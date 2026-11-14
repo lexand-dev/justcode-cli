@@ -1,8 +1,18 @@
-import { createMemoryRouter } from 'react-router'
+import { createMemoryRouter, Outlet } from 'react-router'
+import { AgentModeProvider } from './hooks/use-agent-mode'
 import { ChatScreen } from './screens/chat-screen'
 import { HomeScreen } from './screens/home-screen'
 
 export const router = createMemoryRouter([
-  { path: '/', element: <HomeScreen /> },
-  { path: '/sessions/:sessionId', element: <ChatScreen /> },
+  {
+    element: (
+      <AgentModeProvider>
+        <Outlet />
+      </AgentModeProvider>
+    ),
+    children: [
+      { path: '/', element: <HomeScreen /> },
+      { path: '/sessions/:sessionId', element: <ChatScreen /> },
+    ],
+  },
 ])

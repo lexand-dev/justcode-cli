@@ -1,8 +1,9 @@
 import { createDeepSeek } from "@ai-sdk/deepseek";
-import { agentTools } from "@justcode/tools";
+import { agentModeSchema, agentModeTools, agentTools } from "@justcode/tools";
 import { ToolLoopAgent } from "ai";
+import { z } from "zod";
 import { env } from "../env";
-import { INSTRUCTIONS } from "./instructions";
+import { instructionsFor, withModeReminder } from "./instructions";
 
 const deepSeek = createDeepSeek({ baseURL: "https://api.deepseek.com/beta" });
 
@@ -17,9 +18,16 @@ export function isAgentConfigured() {
 /**
  * The coding agent. Its tools have no `execute`, so the loop ends at the first tool call:
  * each run is one step, and the CLI runs the call and sends the outputs back in a new request.
+ * Each call passes the active mode, which sets the instructions and the tools the model can call.
  */
 export const codingAgent = new ToolLoopAgent({
   model: deepSeek(MODEL_ID),
-  instructions: INSTRUCTIONS,
-  tools: agentTools
+  tools: agentTools,
+  callOptionsSchema: z.object({ mode: agentModeSchema }),
+  prepareCall: ({ options, messages, ...settings }) => ({
+    ...settings,
+    instructions: instructionsFor(options.mode),
+    messages: messages && withModeReminder(messages, options.mode),
+    activeTools: agentModeTools[options.mode]
+  })
 });

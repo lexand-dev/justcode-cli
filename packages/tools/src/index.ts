@@ -6,6 +6,15 @@ import { searchFilesTool } from "./tools/filesystem/search-files";
 import { writeFileTool } from "./tools/filesystem/write-file";
 import { bashTool } from "./tools/shell/bash";
 
+export {
+  AGENT_MODES,
+  type AgentMode,
+  agentModeSchema,
+  agentModeTools,
+  DEFAULT_AGENT_MODE,
+  nextAgentMode
+} from "./modes";
+
 /**
  * The coding agent's tools, as sent to the model. They have no `execute`: the server only
  * forwards tool calls, and the CLI runs them against its working directory (see `./execute`).

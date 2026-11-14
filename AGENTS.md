@@ -16,6 +16,7 @@
 - Return error responses from the handler, or from a helper the handler returns (`storedSessionError` in `sessions/responses.ts`), not from middleware: middleware responses are missing from `AppType`, and the CLI compares status codes against it.
 - Read environment variables through `env` (`src/env.ts`, validated with Zod), not `process.env`. `DATABASE_URL` is the exception: `@justcode/db/client` reads it.
 - The agent (provider, model, system prompt, `ToolLoopAgent`) lives in `src/agent/`; routes run `codingAgent` (`src/agent/coding-agent.ts`) and never configure the model. It stays server-only: the CLI must not import it, so shared types such as `ChatUIMessage` stay in `@justcode/tools`. Move it to its own package only when a second app needs to run the agent.
+- Agent modes (BUILD, PLAN, …) change the instructions and the tools the model can call. Mode ids, cycle order and tool access are in `packages/tools/src/modes.ts`; each mode's prompt is in `src/agent/instructions.ts` and its label in `apps/cli/src/lib/agent-modes.ts`. To add a mode, add its id to `AGENT_MODES` and fill in whatever typecheck reports missing. Restrict tools through `agentModeTools` (passed as `activeTools`), not through prompt wording: the server then rejects calls to excluded tools before they reach the CLI.
 - Validate bodies with `zValidator("json", schema)` and read them through `c.req.valid("json")`; `c.req.json<T>()` only asserts a type. For AI SDK messages, Zod checks the envelope and `validateMessages` (`sessions/store.ts`) checks the parts before `convertToModelMessages`; invalid input is a 400.
 - To exercise routes without a server, call `app.request()` from `src/app.ts` with `bun -e`, run from `apps/server` so its `.env` loads. The Hono CLI (`hono request`) cannot load this app: it runs under Node, which cannot resolve the TypeScript `@justcode/db` package.
 
@@ -27,6 +28,7 @@ The server owns the history; the client sends only its newest message. `src/chat
 - `POST /chat/:sessionId` runs one assistant step. A `user` message starts a turn. An `assistant` message is a tool-result continuation of the latest stored message and keeps its id, so one turn is one stored assistant message.
 - A retry resends an already stored user message; the server cuts the history at it instead of duplicating it.
 - Assistant ids come from `generateMessageId`, so the stored id matches the streamed one.
+- Every request also carries the CLI's current `mode`. The transport resolves it per request (its `body` option), so a mode switch mid-turn applies from the next step, tool-result continuations included.
 - `saveSessionMessages` (in `onEnd`) makes the stored messages match the final list. Errors are not persisted: when the step does not complete, only the incoming messages are saved. A failed save is logged and leaves the response untouched.
 
 ## Tools (`packages/tools`)

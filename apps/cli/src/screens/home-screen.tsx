@@ -39,7 +39,7 @@ export function HomeScreen() {
 
   return (
     <box alignItems="center" justifyContent="center" flexGrow={1}>
-      <box flexDirection="column" alignItems="center" gap={1} width="90%" maxWidth={64}>
+      <box flexDirection="column" alignItems="center" gap={1} width="90%" maxWidth={76}>
         <AsciiArt />
         <ServerStatus />
         <ChatTextarea
@@ -47,7 +47,7 @@ export function HomeScreen() {
           key={state.status === 'error' ? state.attempt : 0}
           initialValue={state.status === 'error' ? state.draft : undefined}
           disabled={state.status === 'creating'}
-          placeholder="Enter a message: Enter to chat, Shift+Enter for a new line"
+          placeholder={'Ask anything… "Fix a TODO in the codebase"'}
           onSend={(message) => { void startSession(message) }}
         />
         {state.status === 'creating' ? <text>Creating session...</text> : null}

@@ -4,8 +4,14 @@ import { SyntaxStyle } from '@opentui/core'
 export const theme = {
   user: '#7aa2f7',
   userBackground: '#1f2335',
+  /** Background of the chat input, set apart from the terminal's default background. */
+  inputBackground: '#303030',
   assistant: '#bb9af7',
   muted: '#737aa2',
+  /** The model name under the chat input. */
+  model: '#ffffff',
+  /** The provider name under the chat input. */
+  provider: '#808080',
   toolName: '#7dcfff',
   running: '#e0af68',
   success: '#9ece6a',

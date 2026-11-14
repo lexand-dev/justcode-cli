@@ -14,6 +14,8 @@ import {
   type InferUITools,
   type ToolUIPart,
 } from 'ai'
+import { agentModeDisplay } from '../lib/agent-modes'
+import { LEFT_BAR_CHARS } from '../lib/left-bar'
 import { markdownStyle, theme } from '../lib/theme'
 import { isToolDeniedError } from '../lib/tool-approval'
 
@@ -115,10 +117,11 @@ function UserMessage({ message }: { message: ChatUIMessage }) {
   return (
     <box
       border={['left']}
-      borderStyle="heavy"
-      borderColor={theme.user}
+      customBorderChars={LEFT_BAR_CHARS}
+      borderColor={agentModeDisplay.build.color}
       backgroundColor={theme.userBackground}
       paddingX={1}
+      paddingY={1}
       marginBottom={1}
     >
       <text>{text}</text>

@@ -8,6 +8,8 @@ export const theme = {
   inputBackground: '#303030',
   assistant: '#bb9af7',
   muted: '#737aa2',
+  /** The model's reasoning ("Thinking:") text in the transcript. */
+  thinking: '#898989',
   /** The model name under the chat input. */
   model: '#ffffff',
   /** The provider name under the chat input. */

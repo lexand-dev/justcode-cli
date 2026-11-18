@@ -105,7 +105,7 @@ function AssistantPart({ part }: { part: MessagePart }) {
     )
   }
   if (part.type === 'reasoning') {
-    return <text fg={theme.muted}><em>Thinking: {part.text}</em></text>
+    return <text fg={theme.thinking}><em>Thinking: {part.text}</em></text>
   }
   if (isToolUIPart(part)) return <ToolPart part={part} />
   return null

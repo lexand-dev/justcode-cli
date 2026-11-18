@@ -1,5 +1,5 @@
 import { prisma, type Prisma } from "@justcode/db/client";
-import { agentTools, type ChatUIMessage } from "@justcode/tools";
+import { agentTools, type ChatUIMessage, messageMetadataSchema } from "@justcode/tools";
 import { safeValidateUIMessages } from "ai";
 
 const TITLE_MAX_LENGTH = 100;
@@ -19,11 +19,15 @@ function titleFrom(messages: ChatUIMessage[]) {
 }
 
 /**
- * Validates messages against the current tools; without `tools` the SDK skips tool inputs and
- * outputs. Used for stored messages and for the history a chat request builds.
+ * Validates messages against the current tools and the message metadata; without `tools` the SDK
+ * skips tool inputs and outputs. Used for stored messages and for the history a chat request builds.
  */
 export function validateMessages(messages: unknown[]) {
-  return safeValidateUIMessages<ChatUIMessage>({ messages, tools: agentTools });
+  return safeValidateUIMessages<ChatUIMessage>({
+    messages,
+    tools: agentTools,
+    metadataSchema: messageMetadataSchema
+  });
 }
 
 export async function createSession() {
@@ -36,21 +40,25 @@ export type StoredSession =
   | { status: "invalid" }
   | { status: "ok"; messages: ChatUIMessage[] };
 
-/** Loads a session's messages in order and validates them against the current tools. */
+/**
+ * Loads a session's messages in order, each with its stored mode as `metadata`, and validates them
+ * against the current tools.
+ */
 export async function loadSessionMessages(sessionId: string): Promise<StoredSession> {
   const session = await prisma.session.findUnique({
     where: { id: sessionId },
     select: {
       messages: {
         orderBy: { position: "asc" },
-        select: { id: true, role: true, parts: true }
+        select: { id: true, role: true, parts: true, mode: true }
       }
     }
   });
   if (!session) return { status: "not-found" };
   if (session.messages.length === 0) return { status: "ok", messages: [] };
 
-  const validated = await validateMessages(session.messages);
+  const messages = session.messages.map(({ mode, ...message }) => ({ ...message, metadata: { mode } }));
+  const validated = await validateMessages(messages);
   return validated.success ? { status: "ok", messages: validated.data } : { status: "invalid" };
 }
 
@@ -63,7 +71,8 @@ export async function isMessageInOtherSession(messageId: string, sessionId: stri
 /**
  * Makes the stored messages of an existing session match `messages` (the full conversation, in order).
  * Messages no longer in the list (e.g. a reply cut off by a retry) are deleted.
- * `model` is recorded only when an assistant message is first stored.
+ * `model` is recorded only when an assistant message is first stored. Each message must carry its
+ * `metadata.mode`, which is stored as its mode; a missing one throws and rolls the save back.
  */
 export async function saveSessionMessages({
   sessionId,
@@ -87,6 +96,7 @@ export async function saveSessionMessages({
 
     for (const [position, message] of messages.entries()) {
       const parts = toJson(message.parts);
+      const messageMode = messageMetadataSchema.parse(message.metadata).mode;
       await tx.message.upsert({
         where: { id: message.id },
         create: {
@@ -95,9 +105,10 @@ export async function saveSessionMessages({
           role: message.role,
           parts,
           model: message.role === "assistant" ? model : null,
+          mode: messageMode,
           position
         },
-        update: { parts, position }
+        update: { parts, position, mode: messageMode }
       });
     }
   });

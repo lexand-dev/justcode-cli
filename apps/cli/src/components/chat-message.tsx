@@ -1,4 +1,4 @@
-import type { AgentTools, ChatUIMessage } from '@justcode/tools'
+import { DEFAULT_AGENT_MODE, type AgentTools, type ChatUIMessage } from '@justcode/tools'
 import {
   describeToolInput,
   describeToolOutput,
@@ -118,7 +118,7 @@ function UserMessage({ message }: { message: ChatUIMessage }) {
     <box
       border={['left']}
       customBorderChars={LEFT_BAR_CHARS}
-      borderColor={agentModeDisplay.build.color}
+      borderColor={agentModeDisplay[message.metadata?.mode ?? DEFAULT_AGENT_MODE].color}
       backgroundColor={theme.userBackground}
       paddingX={1}
       paddingY={1}

@@ -29,6 +29,7 @@ The server owns the history; the client sends only its newest message. `src/chat
 - A retry resends an already stored user message; the server cuts the history at it instead of duplicating it.
 - Assistant ids come from `generateMessageId`, so the stored id matches the streamed one.
 - Every request also carries the CLI's current `mode`. The transport resolves it per request (its `body` option), so a mode switch mid-turn applies from the next step, tool-result continuations included.
+- The server stamps each message a request writes with that mode (`Message.mode`, exposed as `metadata.mode`); the client's value is ignored. `withModeNotes` (`src/agent/instructions.ts`) turns each user message's stamp into a `<mode>` note for the model.
 - `saveSessionMessages` (in `onEnd`) makes the stored messages match the final list. Errors are not persisted: when the step does not complete, only the incoming messages are saved. A failed save is logged and leaves the response untouched.
 
 ## Tools (`packages/tools`)
@@ -49,7 +50,7 @@ The server owns the history; the client sends only its newest message. `src/chat
 
 - Setup, schema changes and the migration plan are in `packages/db/AGENTS.md`.
 - Two entry points: `@justcode/db` exports only the generated model types, so any app, including the CLI, can `import type` them; `@justcode/db/client` exports the `prisma` client and is server-only.
-- Each `Message` row is one AI SDK `UIMessage`, its `parts` stored as JSONB and ordered by `position`. Validate loaded messages with `safeValidateUIMessages` and `tools: agentTools`, on the server and in the CLI: without `tools`, the SDK skips tool inputs and outputs entirely.
+- Each `Message` row is one AI SDK `UIMessage`, its `parts` stored as JSONB and ordered by `position`, and its `mode` is the mode of the request that wrote it. Validate loaded messages with `safeValidateUIMessages` and `tools: agentTools`, on the server and in the CLI: without `tools`, the SDK skips tool inputs and outputs entirely.
 - `bun run db:reset` wipes all data and recreates the tables without asking. `prisma migrate reset` does not apply, since there are no migrations.
 
 ## CLI (`apps/cli`)

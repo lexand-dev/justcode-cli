@@ -3,7 +3,7 @@ import { activeToolsFor, agentModeSchema, agentTools } from "@justcode/tools";
 import { ToolLoopAgent } from "ai";
 import { z } from "zod";
 import { env } from "../env";
-import { instructionsFor, withModeReminder } from "./instructions";
+import { instructionsFor } from "./instructions";
 
 const deepSeek = createDeepSeek({ baseURL: "https://api.deepseek.com/beta" });
 
@@ -24,10 +24,9 @@ export const codingAgent = new ToolLoopAgent({
   model: deepSeek(MODEL_ID),
   tools: agentTools,
   callOptionsSchema: z.object({ mode: agentModeSchema }),
-  prepareCall: ({ options, messages, ...settings }) => ({
+  prepareCall: ({ options, ...settings }) => ({
     ...settings,
     instructions: instructionsFor(options.mode),
-    messages: messages && withModeReminder(messages, options.mode),
     activeTools: activeToolsFor(options.mode)
   })
 });

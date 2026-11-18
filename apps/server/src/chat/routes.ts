@@ -9,6 +9,7 @@ import { Hono } from "hono";
 import { agentModeSchema } from "@justcode/tools";
 import { z } from "zod";
 import { codingAgent, isAgentConfigured, MODEL_ID } from "../agent/coding-agent";
+import { withModeNotes } from "../agent/instructions";
 import { sessionParamSchema } from "../sessions/params";
 import { storedSessionError } from "../sessions/responses";
 import { isMessageInOtherSession, loadSessionMessages, saveSessionMessages, validateMessages } from "../sessions/store";
@@ -49,7 +50,9 @@ export const chatRoutes = new Hono()
       return c.text("Only the latest assistant message can be continued.", 400);
     }
 
-    const validated = await validateMessages([...turn.history, message]);
+    // The mode is stamped on the message this request writes, so the server sets it, not the client.
+    const stamped = { ...message, metadata: { mode } };
+    const validated = await validateMessages([...turn.history, stamped]);
     if (!validated.success) {
       return c.text("Invalid message.", 400);
     }
@@ -59,7 +62,7 @@ export const chatRoutes = new Hono()
     // Not `createAgentUIStreamResponse`: it converts messages without `ignoreIncompleteToolCalls`.
     const result = await codingAgent.stream({
       // Tool calls the CLI never answered (e.g. it quit mid-turn) are skipped instead of failing.
-      messages: await convertToModelMessages(validated.data, { ignoreIncompleteToolCalls: true }),
+      messages: await convertToModelMessages(withModeNotes(validated.data, mode), { ignoreIncompleteToolCalls: true }),
       options: { mode }
     });
 
@@ -70,6 +73,8 @@ export const chatRoutes = new Hono()
         // Server-generated assistant ids, so the stored id matches the one the client receives.
         // A continuation reuses the id of the incoming assistant message.
         generateMessageId: createIdGenerator({ prefix: "msg", size: 16 }),
+        // Sent with the stream's start, so the CLI shows the mode on the new message at once.
+        messageMetadata: ({ part }) => (part.type === "start" ? { mode } : undefined),
         onEnd: async ({ messages: finalMessages, outcome }) => {
           // Errors are not persisted: if the reply did not complete, store the conversation
           // without it. On retry the client resends the same message.

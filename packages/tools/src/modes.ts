@@ -10,6 +10,11 @@ export const DEFAULT_AGENT_MODE: AgentMode = AGENT_MODES[0];
 
 export const agentModeSchema = z.enum(AGENT_MODES);
 
+/** The metadata stored on each chat message: the mode of the request that wrote it. */
+export const messageMetadataSchema = z.object({ mode: agentModeSchema });
+
+export type MessageMetadata = z.infer<typeof messageMetadataSchema>;
+
 /**
  * The tools each mode can call; `undefined` means every tool. The server passes them as
  * `activeTools`, so the model neither sees nor can call the others. Read-only modes list their

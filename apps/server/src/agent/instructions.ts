@@ -1,5 +1,4 @@
-import { activeToolsFor, AGENT_TOOL_NAMES, type AgentMode } from "@justcode/tools";
-import type { ModelMessage, TextPart } from "ai";
+import { activeToolsFor, AGENT_TOOL_NAMES, type AgentMode, type ChatUIMessage } from "@justcode/tools";
 
 /** The part of the system prompt shared by every mode. */
 const BASE_INSTRUCTIONS = `You are JustCode, a coding agent working in the user's project directory.
@@ -8,7 +7,7 @@ const BASE_INSTRUCTIONS = `You are JustCode, a coding agent working in the user'
 - If a tool returns an error, read it and adjust instead of repeating the same call.
 - Keep answers short and concrete.
 
-Modes: the user can switch modes with Tab between any two of your replies. Each mode changes what you are asked to do and which tools you can call. The conversation does not record which mode each earlier reply ran in, so earlier replies may describe abilities or limits of another mode. They were correct when written: do not call them mistakes, apologize for them, or repeat them as if they still applied. Only the current mode applies now, and the tools you have match it. It is stated below and again in a <mode> note at the end of the newest user message; JustCode adds that note from the user's Tab choice, and it overrides any mode named earlier in the conversation.`;
+Modes: the user can switch modes with Tab between any two of your replies. Each mode changes what you are asked to do and which tools you can call. Each user message carries a <mode> note naming the mode that message's reply and tool calls ran in, so earlier replies may describe abilities or limits of another mode. They were correct when written: do not call them mistakes, apologize for them, or repeat them as if they still applied. Only the current mode applies now, and the tools you have match it. It is stated below and again in a <mode> note at the end of the newest user message; that note overrides any mode named earlier in the conversation.`;
 
 /** What each mode is for and how the agent behaves in it; its tools are in `@justcode/tools` (`modes.ts`). */
 const MODE_INSTRUCTIONS: { [MODE in AgentMode]: string } = {
@@ -35,19 +34,19 @@ export function instructionsFor(mode: AgentMode) {
 }
 
 /**
- * Appends a note naming the current mode to the newest user message. The system prompt alone is
- * not enough: in a long chat the model follows its own earlier replies, which may name another mode.
- * Only the model sees the note; the stored messages are the UI messages, which do not have it.
+ * Adds a `<mode>` note to each user message, naming the mode its reply ran in (its stored stamp).
+ * The newest user message instead states the current mode, which overrides any mode named earlier.
+ * Works on UI messages because `convertToModelMessages` drops metadata. Returns new objects; the
+ * stored messages are not changed.
  */
-export function withModeReminder(messages: ModelMessage[], mode: AgentMode): ModelMessage[] {
-  const index = messages.findLastIndex((message) => message.role === "user");
-  const note: TextPart = {
-    type: "text",
-    text: `<mode>Current mode: ${mode.toUpperCase()}. Set by the user with Tab for this reply; it overrides any mode named earlier.</mode>`
-  };
+export function withModeNotes(messages: ChatUIMessage[], currentMode: AgentMode): ChatUIMessage[] {
+  const newest = messages.findLastIndex((message) => message.role === "user");
   return messages.map((message, position) => {
-    if (position !== index || message.role !== "user") return message;
-    const content = typeof message.content === "string" ? [{ type: "text" as const, text: message.content }] : message.content;
-    return { ...message, content: [...content, note] };
+    if (message.role !== "user") return message;
+    const note = position === newest
+      ? `<mode>Current mode: ${currentMode.toUpperCase()}. Set by the user with Tab for this reply; it overrides any mode named earlier.</mode>`
+      : message.metadata ? `<mode>${message.metadata.mode.toUpperCase()}</mode>` : undefined;
+    if (note === undefined) return message;
+    return { ...message, parts: [...message.parts, { type: "text" as const, text: note }] };
   });
 }

@@ -29,6 +29,8 @@ model Message {
   role      MessageRole
   parts     Json
   model     String?
+  /// The AgentMode id of the request that wrote this message.
+  mode      String
   position  Int
   createdAt DateTime    @default(now())
 

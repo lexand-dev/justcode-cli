@@ -1,5 +1,5 @@
 import { useChat } from '@ai-sdk/react'
-import type { AgentMode, ChatUIMessage } from '@justcode/tools'
+import { messageMetadataSchema, type AgentMode, type ChatUIMessage } from '@justcode/tools'
 import { describeToolApproval, executeToolCall } from '@justcode/tools/execute'
 import {
   DefaultChatTransport,
@@ -7,7 +7,7 @@ import {
   isToolUIPart,
   lastAssistantMessageIsCompleteWithToolCalls,
 } from 'ai'
-import { useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { client } from '../lib/client'
 import { toolDeniedError } from '../lib/tool-approval'
 import { workspace } from '../lib/workspace'
@@ -70,7 +70,7 @@ function useUnmountSignal() {
 
 /**
  * `useChat` for one session. The server only forwards tool calls; they run here, against the
- * launch directory, and the assistant message is resent once every call has an output.
+ * launch directory, and the assistant message is resent once every output is in.
  */
 export function useAgentChat({ sessionId, initialMessages }: { sessionId: string; initialMessages: ChatUIMessage[] }) {
   const { mode } = useAgentMode()
@@ -86,6 +86,7 @@ export function useAgentChat({ sessionId, initialMessages }: { sessionId: string
     id: sessionId,
     messages: initialMessages,
     transport,
+    messageMetadataSchema,
     async onToolCall({ toolCall }) {
       if (toolCall.dynamic) return
 
@@ -105,9 +106,16 @@ export function useAgentChat({ sessionId, initialMessages }: { sessionId: string
       lastAssistantMessageIsCompleteWithToolCalls({ messages }) && !reachedToolCallLimit(messages),
   })
 
+  // A new message records the mode it is sent in, so its bubble keeps that mode after a switch.
+  // The server stamps the stored message itself; this copy is for the display.
+  const sendInCurrentMode = useCallback(
+    (message: { text: string }) => sendMessage({ ...message, metadata: { mode: modeRef.current } }),
+    [sendMessage],
+  )
+
   const toolLimitReached = status === 'ready'
     && lastAssistantMessageIsCompleteWithToolCalls({ messages })
     && reachedToolCallLimit(messages)
 
-  return { messages, sendMessage, regenerate, status, error, approvals, toolLimitReached }
+  return { messages, sendMessage: sendInCurrentMode, regenerate, status, error, approvals, toolLimitReached }
 }

@@ -1,5 +1,5 @@
 import type { InferUITools, UIDataTypes, UIMessage } from "ai";
-import { agentModeTools, type AgentMode } from "./modes";
+import { agentModeTools, type AgentMode, type MessageMetadata } from "./modes";
 import { editFileTool } from "./tools/filesystem/edit-file";
 import { listFilesTool } from "./tools/filesystem/list-files";
 import { readFileTool } from "./tools/filesystem/read-file";
@@ -13,6 +13,8 @@ export {
   agentModeSchema,
   agentModeTools,
   DEFAULT_AGENT_MODE,
+  messageMetadataSchema,
+  type MessageMetadata,
   nextAgentMode
 } from "./modes";
 
@@ -45,7 +47,7 @@ export const agentTools = {
 
 export type AgentTools = typeof agentTools;
 
-export type ChatUIMessage = UIMessage<unknown, UIDataTypes, InferUITools<AgentTools>>;
+export type ChatUIMessage = UIMessage<MessageMetadata, UIDataTypes, InferUITools<AgentTools>>;
 
 /** The tools a mode lets the model call: its `agentModeTools` entry, or every tool when it has none. */
 export function activeToolsFor(mode: AgentMode): AgentToolName[] {

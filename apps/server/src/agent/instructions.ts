@@ -1,4 +1,4 @@
-import type { AgentMode } from "@justcode/tools";
+import { activeToolsFor, AGENT_TOOL_NAMES, type AgentMode } from "@justcode/tools";
 import type { ModelMessage, TextPart } from "ai";
 
 /** The part of the system prompt shared by every mode. */
@@ -17,15 +17,21 @@ const MODE_INSTRUCTIONS: { [MODE in AgentMode]: string } = {
 - Use bash to run builds, tests, type checks, git, and package managers, and to verify your changes. Use the file tools, not bash, to read, search, or edit files. The user approves every command; if they deny one, do not retry it: ask how they want to proceed.
 - An earlier turn may hold a plan written in PLAN mode. When the user asks you to carry it out, re-read the files it touches first, then follow it.
 - Summarize what you changed when you are done.`,
-  plan: `You are in PLAN mode, which is read-only: you cannot edit files or run commands, and you only have readFile, listFiles and searchFiles.
+  plan: `You are in PLAN mode, which is read-only: you cannot edit files or run commands. The tools you can call are listed below.
 - Investigate the code the request touches, then reply with a concrete plan: the files to change, the steps in order, the risks, and how to verify the result.
 - Edits or commands in earlier turns were made in another mode; you cannot make them now.
 - If the user asks you to make changes, give the plan and tell them to switch to BUILD mode with Tab to carry it out.`
 };
 
-/** The system prompt for a mode: the shared rules, then the mode's own. */
+/** The system prompt for a mode: the shared rules, the mode's own, then the tools it allows. */
 export function instructionsFor(mode: AgentMode) {
-  return `${BASE_INSTRUCTIONS}\n\nCurrent mode: ${mode.toUpperCase()}\n${MODE_INSTRUCTIONS[mode]}`;
+  const active = activeToolsFor(mode);
+  const inactive = AGENT_TOOL_NAMES.filter((name) => !active.includes(name));
+  const toolLines = [`Tools you can call now: ${active.join(", ")}.`];
+  if (inactive.length > 0) {
+    toolLines.push(`Not available in this mode, though earlier turns may have used them: ${inactive.join(", ")}.`);
+  }
+  return `${BASE_INSTRUCTIONS}\n\nCurrent mode: ${mode.toUpperCase()}\n${MODE_INSTRUCTIONS[mode]}\n${toolLines.join("\n")}`;
 }
 
 /**

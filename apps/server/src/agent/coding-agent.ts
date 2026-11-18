@@ -1,5 +1,5 @@
 import { createDeepSeek } from "@ai-sdk/deepseek";
-import { agentModeSchema, agentModeTools, agentTools } from "@justcode/tools";
+import { activeToolsFor, agentModeSchema, agentTools } from "@justcode/tools";
 import { ToolLoopAgent } from "ai";
 import { z } from "zod";
 import { env } from "../env";
@@ -28,6 +28,6 @@ export const codingAgent = new ToolLoopAgent({
     ...settings,
     instructions: instructionsFor(options.mode),
     messages: messages && withModeReminder(messages, options.mode),
-    activeTools: agentModeTools[options.mode]
+    activeTools: activeToolsFor(options.mode)
   })
 });
